@@ -1,8 +1,5 @@
-from __future__ import annotations
-
+import os
 import pandas as pd
-from pathlib import Path
-
 
 REQUIRED_COLS = [
     "note_text",
@@ -11,15 +8,15 @@ REQUIRED_COLS = [
 ]
 
 
-def load_technician_notes(path: Path) -> pd.DataFrame:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing file: {path}")
+def load_technician_notes(path: str) -> pd.DataFrame:
+    if not os.path.exists(path):
+        raise FileNotFoundError("Missing file: {}".format(path))
 
     df = pd.read_csv(path)
 
     missing = [c for c in REQUIRED_COLS if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing required columns: {missing}")
+        raise ValueError("Missing required columns: {}".format(missing))
 
     df = df.dropna(subset=REQUIRED_COLS).copy()
     df["note_text"] = df["note_text"].astype(str).str.strip()
