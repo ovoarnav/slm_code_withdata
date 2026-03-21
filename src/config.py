@@ -1,11 +1,12 @@
-from pathlib import Path
+import os
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-ARTIFACT_DIR = BASE_DIR / "artifacts"
-ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
 
-TECH_NOTES_PATH = DATA_DIR / "technician_notes.csv"
+os.makedirs(ARTIFACT_DIR, exist_ok=True)
+
+TECH_NOTES_PATH = os.path.join(DATA_DIR, "technician_notes.csv")
 
 MODEL_NAME = "prajjwal1/bert-tiny"
 MAX_LENGTH = 128
