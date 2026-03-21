@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
 import random
-from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -33,7 +32,7 @@ from config import (
 from data_loader import load_technician_notes
 
 
-def make_splits(df: pd.DataFrame, target_col: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def make_splits(df: pd.DataFrame, target_col: str):
     vc = df[target_col].value_counts()
     keep_classes = vc[vc >= 3].index
     df = df[df[target_col].isin(keep_classes)].copy()
@@ -55,12 +54,7 @@ def make_splits(df: pd.DataFrame, target_col: str) -> Tuple[pd.DataFrame, pd.Dat
     return train_df, val_df, test_df
 
 
-def encode_labels(
-    train_df: pd.DataFrame,
-    val_df: pd.DataFrame,
-    test_df: pd.DataFrame,
-    target_col: str,
-):
+def encode_labels(train_df, val_df, test_df, target_col):
     le = LabelEncoder()
 
     train_df = train_df.copy()
@@ -115,11 +109,11 @@ def train_one_classifier(df: pd.DataFrame, target_col: str, artifact_prefix: str
     )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"\nTraining {artifact_prefix} on device: {device}")
+    print("\nTraining {} on device: {}".format(artifact_prefix, device))
 
     training_args = TrainingArguments(
-        output_dir=str(ARTIFACT_DIR / f"{artifact_prefix}_runs"),
-        eval_strategy="epoch",
+        output_dir=os.path.join(ARTIFACT_DIR, "{}_runs".format(artifact_prefix)),
+        evaluation_strategy="epoch",
         save_strategy="no",
         logging_strategy="epoch",
         learning_rate=3e-5,
@@ -137,7 +131,7 @@ def train_one_classifier(df: pd.DataFrame, target_col: str, artifact_prefix: str
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        processing_class=tokenizer,
+        tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
@@ -159,15 +153,15 @@ def train_one_classifier(df: pd.DataFrame, target_col: str, artifact_prefix: str
         zero_division=0,
     )
 
-    save_dir = ARTIFACT_DIR / artifact_prefix
-    save_dir.mkdir(parents=True, exist_ok=True)
+    save_dir = os.path.join(ARTIFACT_DIR, artifact_prefix)
+    os.makedirs(save_dir, exist_ok=True)
 
-    trainer.save_model(str(save_dir))
-    tokenizer.save_pretrained(str(save_dir))
+    trainer.save_model(save_dir)
+    tokenizer.save_pretrained(save_dir)
 
-    with open(save_dir / "label_map.json", "w") as f:
+    with open(os.path.join(save_dir, "label_map.json"), "w") as f:
         json.dump(
-            {int(i): cls for i, cls in enumerate(label_encoder.classes_)},
+            dict((int(i), cls) for i, cls in enumerate(label_encoder.classes_)),
             f,
             indent=2,
         )
@@ -183,7 +177,7 @@ def train_one_classifier(df: pd.DataFrame, target_col: str, artifact_prefix: str
         "classification_report": report,
     }
 
-    with open(save_dir / "metrics.json", "w") as f:
+    with open(os.path.join(save_dir, "metrics.json"), "w") as f:
         json.dump(payload, f, indent=2)
 
     return payload
@@ -200,7 +194,7 @@ def main():
     if SMOKE_TEST:
         df = df.sample(n=min(SMOKE_TEST_ROWS, len(df)), random_state=RANDOM_STATE).copy()
 
-    print(f"Loaded rows: {len(df)}")
+    print("Loaded rows: {}".format(len(df)))
 
     subsystem_results = train_one_classifier(
         df=df,
@@ -219,7 +213,7 @@ def main():
         "failure_mode_transformer": failure_mode_results,
     }
 
-    with open(ARTIFACT_DIR / "slm_summary.json", "w") as f:
+    with open(os.path.join(ARTIFACT_DIR, "slm_summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
 
     print("\n=== Training complete ===")
