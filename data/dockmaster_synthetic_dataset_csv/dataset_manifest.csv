@@ -1,0 +1,10 @@
+table_name,rows,columns
+vessels,2000,29
+work_orders,9091,21
+parts_components,48426,16
+service_history,9848,10
+technician_notes,9091,13
+inventory_usage,8381,10
+salvage_candidates,11661,11
+inspection_results,9292,15
+market_comparables,4000,17
